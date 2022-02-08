@@ -5,109 +5,48 @@ const typeDefs = gql`
     id: ID!
   }
 
-  type Skill {
+  type Skill implements Node {
     id: ID!
     name: String!
-  }
-
-  type PageInfo {
-    hasNextPage: Boolean!
-    hasPreviousPage: Boolean!
-    startCursor: String
-    endCursor: String
-  }
-
-  type SkillEdge {
-    cursor: String!
-    node: Skill!
-  }
-
-  type Skills {
-    edges: [SkillEdge!]!
-    pageInfo: PageInfo!
-  }
-
-  type SkillResponseNode {
-    id: ID!
-    name: String!
-  }
-
-  type SkillResponseEdge {
-    node: SkillResponseNode!
-  }
-
-  type SkillResponse {
-    edge: SkillResponseEdge!
   }
 
   type ReactTeam implements Node {
     id: ID!
     name: String!
     resolveType: String!
-    skillConnection(
-      first: Int
-      after: String
-      before: String
-      last: Int
-    ): Skills!
+    skills(pageSize: Int, limit: Int): [Skill!]!
   }
 
   type Query {
     Teams: [ReactTeam]!
-    node(id: ID!): Node
+    node(id: ID!): Node!
   }
 
   type Mutation {
     removeSkill(memberName: String, skill: String): Skill!
-    addSkill(memberName: String, skill: String): SkillResponse!
+    addSkill(memberName: String, skill: String): Skill!
     updateSkill(memberName: String, skill: String, update: String): Skill!
   }
 `;
 
 let skillId = 3;
 let cursor = 3;
-let currentIndex = 0;
 
 const teams = [
   {
     id: 1,
     name: "keju",
-    skillConnection: {
-      edges: [
-        {
-          cursor: "11",
-          node: { id: "skill1", name: "React" },
-        },
-        {
-          cursor: "22",
-          node: { id: "skill2", name: "React Native" },
-        },
-      ],
-      pageInfo: {
-        hasNextPage: true,
-        hasPreviousPage: false,
-        startCursor: "11",
-        endCursor: "22",
-      },
-    },
+    skills: [
+      { id: "skill1", name: "React" },
+      { id: "skill2", name: "React2" },
+      { id: "skill3", name: "React3" },
+      { id: "skill4", name: "React4" },
+    ],
   },
   {
     id: 2,
     name: "dexiong",
-    skillConnection: {
-      edges: [
-        {
-          cursor: "33",
-          node: { id: "skill3", name: "React Native" },
-        },
-      ],
-      pageInfo: {
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor: "33",
-        endCursor: "33",
-      },
-    },
+    skills: [{ id: "skill5", name: "React" }],
   },
 ];
 
@@ -142,17 +81,10 @@ const resolvers = {
     addSkill: (_, { memberName, skill }) => {
       const member = teams.find((team) => team.name === memberName);
       cursor = `${++cursor}`;
-      member.skillConnection.edges.push({
-        cursor,
-        node: { id: ++skillId, name: skill },
-      });
+      member.skills.push({ id: ++skillId, name: skill });
       return {
-        edge: {
-          node: {
-            id: ++skillId,
-            name: skill,
-          },
-        },
+        id: ++skillId,
+        name: skill,
       };
     },
     updateSkill: (_, { memberName, skill, update }) => {
@@ -165,11 +97,6 @@ const resolvers = {
       skillName.name = update;
 
       return { id: skillName.id, name: update };
-    },
-  },
-  ReactTeam: {
-    skillConnection: (team, { first, after, before, id }) => {
-      return team.skillConnection;
     },
   },
   Node: {
